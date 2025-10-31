@@ -60,12 +60,40 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        /* Control Buttons */
+        .control-btn {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            z-index: 100;
+            transition: background 0.3s ease;
+        }
+        .control-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+        .fullscreen-btn {
+            top: 20px;
+            right: 20px;
+        }
+        .pause-btn {
+            bottom: 20px;
+            right: 20px;
+        }
     </style>
 </head>
 
 <body>
     <div class="loader" id="loader"><div></div></div>
     <div class="owl-carousel" id="imageSlider" style="display: none;"></div>
+    
+    <!-- Control Buttons -->
+    <button class="control-btn fullscreen-btn" id="fullscreenBtn" title="Toggle Fullscreen">⛶</button>
+    <button class="control-btn pause-btn" id="pauseBtn" title="Pause/Play">⏸️</button>
 
     <script>
         $(document).ready(function () {
@@ -79,7 +107,7 @@
                     slider.append(imgDiv);
                 });
                 
-                slider.owlCarousel({
+                let owl = slider.owlCarousel({
                     loop: true,
                     autoplay: true,
                     autoplayTimeout: 2000,
@@ -87,9 +115,51 @@
                     items: 1
                 });
                 
+                // Pause/Play functionality - moved inside to ensure carousel is initialized
+                let isPaused = false;
+                $('#pauseBtn').click(function() {
+                    if (!isPaused) {
+                        owl.trigger('stop.owl.autoplay');
+                        $(this).html('▶️');
+                        isPaused = true;
+                    } else {
+                        owl.trigger('play.owl.autoplay', [2000]);
+                        $(this).html('⏸️');
+                        isPaused = false;
+                    }
+                });
+                
                 $("#loader").fadeOut(500, function () {
                     slider.fadeIn(500);
                 });
+            });
+
+            // Fullscreen functionality
+            let isFullscreen = false;
+            $('#fullscreenBtn').click(function() {
+                if (!isFullscreen) {
+                    if (document.documentElement.requestFullscreen) {
+                        document.documentElement.requestFullscreen();
+                    } else if (document.documentElement.webkitRequestFullscreen) {
+                        document.documentElement.webkitRequestFullscreen();
+                    } else if (document.documentElement.msRequestFullscreen) {
+                        document.documentElement.msRequestFullscreen();
+                    }
+                } else {
+                    if (document.exitFullscreen) {
+                        document.exitFullscreen();
+                    } else if (document.webkitExitFullscreen) {
+                        document.webkitExitFullscreen();
+                    } else if (document.msExitFullscreen) {
+                        document.msExitFullscreen();
+                    }
+                }
+            });
+
+            // Track fullscreen changes
+            document.addEventListener('fullscreenchange', function() {
+                isFullscreen = !isFullscreen;
+                $('#fullscreenBtn').html(isFullscreen ? '⛷' : '⛶');
             });
         });
     </script>
