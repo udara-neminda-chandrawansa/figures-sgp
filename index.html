@@ -84,6 +84,16 @@
             bottom: 20px;
             right: 20px;
         }
+        /* Video Styles */
+        .fullscreen-video {
+            width: 100%;
+            height: 100vh;
+            object-fit: cover;
+            background: black;
+        }
+        .video-item {
+            background: black;
+        }
     </style>
 </head>
 
@@ -102,9 +112,22 @@
                 let baseUrl = "https://onlinetv.sgpconstructions.com/";
                 let slider = $('#imageSlider');
                 
-                images.forEach(image => {
-                    let imgDiv = `<div class='item' style='background-image: url(${baseUrl + image});'></div>`;
-                    slider.append(imgDiv);
+                images.forEach((image, index) => {
+                    // Check if the file is a video based on its extension
+                    let isVideo = /\.(mp4|webm|ogg|avi|mov)$/i.test(image);
+                    
+                    if (isVideo) {
+                        let videoDiv = `<div class='item video-item' data-index='${index}'>
+                            <video class='fullscreen-video' preload='metadata' muted>
+                                <source src='${baseUrl + image}' type='video/mp4'>
+                                Your browser does not support the video tag.
+                            </video>
+                        </div>`;
+                        slider.append(videoDiv);
+                    } else {
+                        let imgDiv = `<div class='item image-item' data-index='${index}' style='background-image: url(${baseUrl + image});'></div>`;
+                        slider.append(imgDiv);
+                    }
                 });
                 
                 let owl = slider.owlCarousel({
@@ -115,15 +138,64 @@
                     items: 1
                 });
                 
+                // Video handling functionality
+                let currentVideo = null;
+                let originalAutoplayTimeout = 2000;
+                
+                // Handle video playback when slide changes
+                owl.on('changed.owl.carousel', function(event) {
+                    // Stop previous video if any
+                    if (currentVideo) {
+                        currentVideo.pause();
+                        currentVideo.currentTime = 0;
+                    }
+                    
+                    // Check if current slide is a video
+                    let currentSlide = $('.owl-item.active .item');
+                    let video = currentSlide.find('video')[0];
+                    
+                    if (video) {
+                        currentVideo = video;
+                        // Stop carousel autoplay
+                        owl.trigger('stop.owl.autoplay');
+                        
+                        // Play the video
+                        video.play().catch(e => console.log('Video play failed:', e));
+                        
+                        // When video ends, resume carousel
+                        video.onended = function() {
+                            owl.trigger('play.owl.autoplay', [originalAutoplayTimeout]);
+                        };
+                    } else {
+                        currentVideo = null;
+                        // If it's an image and autoplay was stopped, restart it
+                        if (!isPaused) {
+                            owl.trigger('play.owl.autoplay', [originalAutoplayTimeout]);
+                        }
+                    }
+                });
+
                 // Pause/Play functionality - moved inside to ensure carousel is initialized
                 let isPaused = false;
                 $('#pauseBtn').click(function() {
                     if (!isPaused) {
                         owl.trigger('stop.owl.autoplay');
+                        // Also pause current video if any
+                        if (currentVideo) {
+                            currentVideo.pause();
+                        }
                         $(this).html('▶️');
                         isPaused = true;
                     } else {
-                        owl.trigger('play.owl.autoplay', [2000]);
+                        // Resume based on current slide type
+                        let currentSlide = $('.owl-item.active .item');
+                        let video = currentSlide.find('video')[0];
+                        
+                        if (video) {
+                            video.play().catch(e => console.log('Video play failed:', e));
+                        } else {
+                            owl.trigger('play.owl.autoplay', [originalAutoplayTimeout]);
+                        }
                         $(this).html('⏸️');
                         isPaused = false;
                     }
